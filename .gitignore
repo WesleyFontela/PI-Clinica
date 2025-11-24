@@ -1,0 +1,19 @@
+# Ignora arquivos compilados
+*.class
+
+# Ignora pasta de build do Maven
+target/
+
+# Ignora arquivos de log
+*.log
+
+# Ignora arquivos temporários
+*.tmp
+*.bak
+
+# Ignora IDEs (IntelliJ, Eclipse, NetBeans)
+*.iml
+.idea/
+*.swp
+*.swo
+*.DS_Store

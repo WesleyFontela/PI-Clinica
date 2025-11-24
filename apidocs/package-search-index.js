@@ -1,0 +1,1 @@
+packageSearchIndex = [{"l":"All Packages","u":"allpackages-index.html"},{"l":"br.com.clinica.dao"},{"l":"br.com.clinica.gui"},{"l":"br.com.clinica.model"},{"l":"br.com.clinica.service"},{"l":"br.com.clinica.util"}];updateSearchResults();
