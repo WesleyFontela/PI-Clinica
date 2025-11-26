@@ -2,11 +2,11 @@ package br.com.clinica.dao;
 
 import br.com.clinica.model.Consulta;
 import br.com.clinica.model.StatusConsulta;
+import static br.com.clinica.util.DateTimeUtils.tryParseDate;
+import static br.com.clinica.util.DateTimeUtils.tryParseTime;
 import jakarta.persistence.*;
 import java.time.LocalDate;
 import java.time.LocalTime;
-import java.time.format.DateTimeFormatter;
-import java.time.format.DateTimeParseException;
 import java.util.List;
 
 /**
@@ -154,64 +154,7 @@ public class ConsultaDAO implements DAO<Consulta> {
                 em.close();
             }
         }
-    }
-
-    /**
-     * Tenta converter o texto para {@link LocalDate} usando múltiplos formatos.
-     *
-     * @param s valor digitado
-     * @return data válida ou null se não for possível converter
-     */
-    private LocalDate tryParseDate(String s) {
-        if (s == null) {
-            return null;
-        }
-        String trimmed = s.trim();
-
-        DateTimeFormatter[] fmts = new DateTimeFormatter[]{
-            DateTimeFormatter.ISO_LOCAL_DATE,
-            DateTimeFormatter.ofPattern("d/M/yyyy"),
-            DateTimeFormatter.ofPattern("d-M-yyyy"),
-            DateTimeFormatter.ofPattern("dd/MM/yyyy"),
-            DateTimeFormatter.ofPattern("dd-MM-yyyy")
-        };
-
-        for (DateTimeFormatter f : fmts) {
-            try {
-                return LocalDate.parse(trimmed, f);
-            } catch (DateTimeParseException ignored) {
-            }
-        }
-        return null;
-    }
-
-    /**
-     * Tenta converter o texto para {@link LocalTime} usando formatos comuns.
-     *
-     * @param s valor digitado
-     * @return hora válida ou null se não for possível converter
-     */
-    private LocalTime tryParseTime(String s) {
-        if (s == null) {
-            return null;
-        }
-        String trimmed = s.trim();
-
-        DateTimeFormatter[] fmts = new DateTimeFormatter[]{
-            DateTimeFormatter.ofPattern("H:mm"),
-            DateTimeFormatter.ofPattern("HH:mm"),
-            DateTimeFormatter.ofPattern("H:mm:ss"),
-            DateTimeFormatter.ofPattern("HH:mm:ss")
-        };
-
-        for (DateTimeFormatter f : fmts) {
-            try {
-                return LocalTime.parse(trimmed, f);
-            } catch (DateTimeParseException ignored) {
-            }
-        }
-        return null;
-    }
+    }      
 
     /**
      * Lista consultas associadas a um médico específico.
