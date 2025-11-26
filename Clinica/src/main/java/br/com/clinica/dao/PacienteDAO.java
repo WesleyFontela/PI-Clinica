@@ -2,6 +2,7 @@ package br.com.clinica.dao;
 
 import br.com.clinica.model.Paciente;
 import jakarta.persistence.*;
+import jakarta.persistence.criteria.*;
 import java.util.List;
 
 /**
@@ -10,7 +11,7 @@ import java.util.List;
  * <p>
  * Fornece operações básicas de persistência (CRUD) e consultas específicas
  * relacionadas a pacientes. Usa JPA {@link EntityManagerFactory} configurado
- * com a unidade de persistência "clinicaPU". 
+ * com a unidade de persistência "clinicaPU".
  */
 public class PacienteDAO implements DAO<Paciente> {
 
@@ -36,7 +37,7 @@ public class PacienteDAO implements DAO<Paciente> {
     /**
      * Atualiza um paciente existente.
      * <p>
-     * Normalmente corresponde a um {@code merge} no contexto JPA.     
+     * Normalmente corresponde a um {@code merge} no contexto JPA.
      *
      * @param p paciente com os dados atualizados
      */
@@ -52,7 +53,7 @@ public class PacienteDAO implements DAO<Paciente> {
     /**
      * Remove o paciente identificado por {@code id}, caso exista.
      * <p>
-     * Se o registro não existir, o método retorna silenciosamente.     
+     * Se o registro não existir, o método retorna silenciosamente.
      *
      * @param id identificador do paciente a ser removido
      */
@@ -100,7 +101,8 @@ public class PacienteDAO implements DAO<Paciente> {
      * Busca pacientes cujo nome, CPF ou telefone correspondam ao termo
      * informado.
      * <p>
-     * A pesquisa usa {@code LIKE} com curingas antes e depois do termo.     
+     * A pesquisa é realizada com {@link CriteriaBuilder#like} aplicando
+     * curingas antes e depois do termo, permitindo correspondência parcial.
      *
      * @param termo texto a ser pesquisado (nome, cpf ou telefone)
      * @return lista de pacientes correspondentes ao termo
@@ -108,14 +110,19 @@ public class PacienteDAO implements DAO<Paciente> {
     public List<Paciente> buscarPorNomeOuCpf(String termo) {
         EntityManager em = emf.createEntityManager();
         try {
-            return em.createQuery(
-                    "SELECT p FROM Paciente p "
-                    + "WHERE p.nome LIKE :termo "
-                    + "OR p.cpf LIKE :termo "
-                    + "OR p.telefone LIKE :termo ",
-                    Paciente.class)
-                    .setParameter("termo", "%" + termo + "%")
-                    .getResultList();
+            CriteriaBuilder cb = em.getCriteriaBuilder();
+            CriteriaQuery<Paciente> cq = cb.createQuery(Paciente.class);
+            Root<Paciente> root = cq.from(Paciente.class);
+
+            String likeTerm = "%" + termo + "%";
+
+            Predicate nomeLike = cb.like(root.get("nome"), likeTerm);
+            Predicate cpfLike = cb.like(root.get("cpf"), likeTerm);
+            Predicate telefoneLike = cb.like(root.get("nome"), likeTerm);
+
+            cq.select(root).where(cb.or(nomeLike, cpfLike, telefoneLike));
+
+            return em.createQuery(cq).getResultList();
         } finally {
             if (em.isOpen()) {
                 em.close();
