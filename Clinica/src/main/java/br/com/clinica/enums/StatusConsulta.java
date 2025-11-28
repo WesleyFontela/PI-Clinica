@@ -1,4 +1,4 @@
-package br.com.clinica.model;
+package br.com.clinica.enums;
 
 /**
  * Representa os possíveis status de uma {@link br.com.clinica.model.Consulta}.

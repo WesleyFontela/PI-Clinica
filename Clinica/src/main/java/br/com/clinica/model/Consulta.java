@@ -1,5 +1,6 @@
 package br.com.clinica.model;
 
+import br.com.clinica.enums.StatusConsulta;
 import java.time.LocalDate;
 import java.time.LocalTime;
 import jakarta.persistence.*;

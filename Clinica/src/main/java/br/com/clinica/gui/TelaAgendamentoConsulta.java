@@ -4,7 +4,7 @@ import br.com.clinica.dao.ConsultaDAO;
 import br.com.clinica.model.Consulta;
 import br.com.clinica.model.Medico;
 import br.com.clinica.model.Paciente;
-import br.com.clinica.model.StatusConsulta;
+import br.com.clinica.enums.StatusConsulta;
 import br.com.clinica.model.Usuario;
 import br.com.clinica.util.UIStyle;
 import jakarta.persistence.EntityManager;

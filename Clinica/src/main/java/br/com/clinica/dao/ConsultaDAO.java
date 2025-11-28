@@ -1,7 +1,7 @@
 package br.com.clinica.dao;
 
 import br.com.clinica.model.Consulta;
-import br.com.clinica.model.StatusConsulta;
+import br.com.clinica.enums.StatusConsulta;
 import static br.com.clinica.util.DateTimeUtils.tryParseDate;
 import static br.com.clinica.util.DateTimeUtils.tryParseTime;
 import jakarta.persistence.*;
