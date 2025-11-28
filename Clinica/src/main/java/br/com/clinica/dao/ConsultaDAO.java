@@ -5,8 +5,10 @@ import br.com.clinica.model.StatusConsulta;
 import static br.com.clinica.util.DateTimeUtils.tryParseDate;
 import static br.com.clinica.util.DateTimeUtils.tryParseTime;
 import jakarta.persistence.*;
+import jakarta.persistence.criteria.*;
 import java.time.LocalDate;
 import java.time.LocalTime;
+import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -14,7 +16,7 @@ import java.util.List;
  * {@link br.com.clinica.model.Consulta}.
  * <p>
  * Além das operações CRUD, esta classe implementa múltiplos filtros e uma busca
- * dinâmica capaz de interpretar termos como textos, datas, horários e status. 
+ * dinâmica capaz de interpretar termos como textos, datas, horários e status.
  */
 public class ConsultaDAO implements DAO<Consulta> {
 
@@ -108,7 +110,7 @@ public class ConsultaDAO implements DAO<Consulta> {
      * <li>data válida (em vários formatos comuns)</li>
      * <li>horário válido (HH:mm ou HH:mm:ss)</li>
      * </ul>
-     * A consulta se ajusta automaticamente dependendo do tipo do termo.     
+     * A consulta se ajusta automaticamente dependendo do tipo do termo.
      *
      * @param termo entrada da busca digitada pelo usuário
      * @return lista de consultas correspondentes
@@ -116,45 +118,38 @@ public class ConsultaDAO implements DAO<Consulta> {
     public List<Consulta> buscarConsulta(String termo) {
         EntityManager em = emf.createEntityManager();
         try {
+            CriteriaBuilder cb = em.getCriteriaBuilder();
+            CriteriaQuery<Consulta> cq = cb.createQuery(Consulta.class);
+            Root<Consulta> root = cq.from(Consulta.class);
+
             String likeTerm = "%" + termo + "%";
 
             LocalDate parsedDate = tryParseDate(termo);
             LocalTime parsedTime = tryParseTime(termo);
 
-            StringBuilder jpql = new StringBuilder(
-                    "SELECT c FROM Consulta c "
-                    + "WHERE LOWER(c.paciente.nome) LIKE LOWER(:termo) "
-                    + "   OR LOWER(c.medico.nome) LIKE LOWER(:termo) "
-                    + "   OR LOWER(CAST(c.status AS string)) LIKE LOWER(:termo)"
-            );
+            List<Predicate> predicates = new ArrayList<>();
+
+            predicates.add(cb.like(cb.lower(root.get("paciente").get("nome")), likeTerm.toLowerCase()));
+            predicates.add(cb.like(cb.lower(root.get("medico").get("nome")), likeTerm.toLowerCase()));
+            predicates.add(cb.like(cb.lower(root.get("status").as(String.class)), likeTerm.toLowerCase()));
 
             if (parsedDate != null) {
-                jpql.append(" OR c.dataAgendada = :dataAgendada");
+                predicates.add(cb.equal(root.get("dataAgendada"), parsedDate));
             }
+
             if (parsedTime != null) {
-                jpql.append(" OR c.horaAgendada = :horaAgendada");
+                predicates.add(cb.equal(root.get("horaAgendada"), parsedTime));
             }
 
-            TypedQuery<Consulta> query
-                    = em.createQuery(jpql.toString(), Consulta.class);
+            cq.select(root).where(cb.or(predicates.toArray(Predicate[]::new)));
 
-            query.setParameter("termo", likeTerm);
-
-            if (parsedDate != null) {
-                query.setParameter("dataAgendada", parsedDate);
-            }
-            if (parsedTime != null) {
-                query.setParameter("horaAgendada", parsedTime);
-            }
-
-            return query.getResultList();
-
+            return em.createQuery(cq).getResultList();
         } finally {
             if (em.isOpen()) {
                 em.close();
             }
         }
-    }      
+    }
 
     /**
      * Lista consultas associadas a um médico específico.
