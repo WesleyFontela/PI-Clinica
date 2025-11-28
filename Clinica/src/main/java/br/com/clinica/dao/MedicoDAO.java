@@ -2,6 +2,7 @@ package br.com.clinica.dao;
 
 import br.com.clinica.model.Medico;
 import jakarta.persistence.*;
+import jakarta.persistence.criteria.*;
 import java.util.List;
 
 /**
@@ -105,14 +106,19 @@ public class MedicoDAO implements DAO<Medico> {
     public List<Medico> buscarPorNomeOuCrm(String termo) {
         EntityManager em = emf.createEntityManager();
         try {
-            return em.createQuery(
-                    "SELECT m FROM Medico m "
-                    + "WHERE m.nome LIKE :termo "
-                    + "   OR m.especialidade LIKE :termo "
-                    + "   OR m.crm LIKE :termo ",
-                    Medico.class)
-                    .setParameter("termo", "%" + termo + "%")
-                    .getResultList();
+            CriteriaBuilder cb = em.getCriteriaBuilder();
+            CriteriaQuery<Medico> cq = cb.createQuery(Medico.class);
+            Root<Medico> root = cq.from(Medico.class);
+            
+            String likeTerm = "%" + termo + "%";
+            
+            Predicate nomeLike = cb.like(root.get("nome"), likeTerm);
+            Predicate especialidadeLike = cb.like(root.get("especialidade"), likeTerm);
+            Predicate crmLike = cb.like(root.get("crm"), likeTerm);
+            
+            cq.select(root).where(cb.or(nomeLike, especialidadeLike, crmLike));
+            
+            return em.createQuery(cq).getResultList();
         } finally {
             if (em.isOpen()) {
                 em.close();
