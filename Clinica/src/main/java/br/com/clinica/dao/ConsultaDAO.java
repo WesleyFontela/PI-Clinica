@@ -2,6 +2,7 @@ package br.com.clinica.dao;
 
 import br.com.clinica.model.Consulta;
 import br.com.clinica.enums.StatusConsulta;
+import br.com.clinica.model.Usuario;
 import static br.com.clinica.util.DateTimeUtils.tryParseDate;
 import static br.com.clinica.util.DateTimeUtils.tryParseTime;
 import jakarta.persistence.*;
@@ -113,41 +114,47 @@ public class ConsultaDAO implements DAO<Consulta> {
      * A consulta se ajusta automaticamente dependendo do tipo do termo.
      *
      * @param termo entrada da busca digitada pelo usuário
+     * @param usuarioLogado
+     * @param perfil
      * @return lista de consultas correspondentes
      */
-    public List<Consulta> buscarConsulta(String termo) {
+    public List<Consulta> buscarConsulta(String termo, Usuario usuarioLogado, String perfil) {
         EntityManager em = emf.createEntityManager();
         try {
             CriteriaBuilder cb = em.getCriteriaBuilder();
             CriteriaQuery<Consulta> cq = cb.createQuery(Consulta.class);
             Root<Consulta> root = cq.from(Consulta.class);
 
-            String likeTerm = "%" + termo + "%";
+            List<Predicate> predicates = new ArrayList<>();
+            String likeTerm = "%" + termo.toLowerCase() + "%";
+
+            predicates.add(cb.like(cb.lower(root.get("paciente").get("nome")), likeTerm));
+            predicates.add(cb.like(cb.lower(root.get("medico").get("nome")), likeTerm));
+            predicates.add(cb.like(cb.lower(root.get("status").as(String.class)), likeTerm));
 
             LocalDate parsedDate = tryParseDate(termo);
-            LocalTime parsedTime = tryParseTime(termo);
-
-            List<Predicate> predicates = new ArrayList<>();
-
-            predicates.add(cb.like(cb.lower(root.get("paciente").get("nome")), likeTerm.toLowerCase()));
-            predicates.add(cb.like(cb.lower(root.get("medico").get("nome")), likeTerm.toLowerCase()));
-            predicates.add(cb.like(cb.lower(root.get("status").as(String.class)), likeTerm.toLowerCase()));
-
             if (parsedDate != null) {
                 predicates.add(cb.equal(root.get("dataAgendada"), parsedDate));
             }
 
+            LocalTime parsedTime = tryParseTime(termo);
             if (parsedTime != null) {
                 predicates.add(cb.equal(root.get("horaAgendada"), parsedTime));
             }
 
-            cq.select(root).where(cb.or(predicates.toArray(Predicate[]::new)));
+            Predicate search = cb.or(predicates.toArray(Predicate[]::new));
+            
+            if ("MEDICO".equals(perfil)) {
+                Predicate medicoFilter = cb.equal(root.get("medico").get("id"), usuarioLogado.getId());
+                cq.select(root).where(cb.and(search, medicoFilter));
+            } else {
+                cq.select(root).where(search);
+            }
 
             return em.createQuery(cq).getResultList();
+
         } finally {
-            if (em.isOpen()) {
-                em.close();
-            }
+            em.close();
         }
     }
 
