@@ -43,7 +43,7 @@ public class TelaAgendamentoConsulta extends javax.swing.JFrame {
      * <p>
      * É utilizado para definir permissões de acesso e determinar quais
      * componentes podem ser visualizadas ou manipuladas na interface.
-     
+     *
      */
     private Usuario usuarioLogado;
 
@@ -95,7 +95,7 @@ public class TelaAgendamentoConsulta extends javax.swing.JFrame {
          * <p>
          * Cada evento do DocumentListener — inserção, remoção ou alteração de
          * estilo — aciona o método {@code buscarConsultas()}, garantindo
-         * atualização imediata dos resultados exibidos.         
+         * atualização imediata dos resultados exibidos.
          */
         txtBuscarConsulta.getDocument().addDocumentListener(new javax.swing.event.DocumentListener() {
             /**
@@ -233,19 +233,19 @@ public class TelaAgendamentoConsulta extends javax.swing.JFrame {
      *
      * <p>
      * Se o campo estiver vazio, todas as consultas são exibidas. Do contrário,
-     * a busca é delegada ao método
-     * {@link ConsultaDAO#buscarConsulta(String)}.
+     * a busca é delegada ao método {@link ConsultaDAO#buscarConsulta(String)}.
      *
      * @param termo Texto digitado pelo usuário para filtragem de consultas.
      */
     private void buscarConsultas(String termo) {
         ConsultaDAO dao = new ConsultaDAO();
         List<Consulta> lista;
+        String perfil = usuarioLogado.getPerfil().trim().toUpperCase(); 
 
         if (termo.isEmpty()) {
             lista = dao.listarTodos();
         } else {
-            lista = dao.buscarConsulta(termo);
+            lista = dao.buscarConsulta(termo, usuarioLogado, perfil);
         }
 
         DefaultTableModel modelo = (DefaultTableModel) tblConsultas.getModel();
@@ -254,11 +254,11 @@ public class TelaAgendamentoConsulta extends javax.swing.JFrame {
         for (Consulta c : lista) {
             modelo.addRow(new Object[]{
                 c.getId(),
-                c.getPaciente().getNome(),
-                c.getMedico().getNome(),
+                c.getPaciente() != null ? c.getPaciente().getNome() : "",
+                c.getMedico() != null ? c.getMedico().getNome() : "",
                 c.getDataAgendada() != null ? c.getDataAgendada().format(fmtData) : "",
-                c.getHoraAgendada(),
-                c.getStatus()
+                c.getHoraAgendada() != null ? c.getHoraAgendada().toString() : "",
+                c.getStatus() != null ? c.getStatus().name() : ""
             });
         }
     }
@@ -267,7 +267,7 @@ public class TelaAgendamentoConsulta extends javax.swing.JFrame {
      * Inicializa os componentes gráficos da tela.
      * <p>
      * Método gerado automaticamente pelo editor visual (NetBeans). Recomenda-se
-     * não modificar manualmente.     
+     * não modificar manualmente.
      */
     @SuppressWarnings("unchecked")
     // <editor-fold defaultstate="collapsed" desc="Generated Code">//GEN-BEGIN:initComponents
