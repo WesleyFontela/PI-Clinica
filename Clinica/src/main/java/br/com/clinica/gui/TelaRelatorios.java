@@ -3,6 +3,7 @@ package br.com.clinica.gui;
 import br.com.clinica.dao.ConsultaDAO;
 import br.com.clinica.dao.MedicoDAO;
 import br.com.clinica.dao.PacienteDAO;
+import br.com.clinica.enums.FiltroRelatorio;
 import br.com.clinica.model.Consulta;
 import br.com.clinica.model.Medico;
 import br.com.clinica.model.Paciente;
@@ -23,12 +24,12 @@ import javax.swing.table.DefaultTableModel;
  * <p>
  * Esta interface gráfica permite visualizar consultas registradas, aplicar
  * filtros por paciente, médico, status e período, além de possibilitar a edição
- * de status e remoção de consultas conforme permissões do usuário logado. 
+ * de status e remoção de consultas conforme permissões do usuário logado.
  *
  * <p>
  * Os componentes visuais utilizam o padrão de estilização definido em
  * {@link UIStyle}. As consultas são carregadas conforme o perfil do usuário:
- * ADMIN, RECEP ou MEDICO. 
+ * ADMIN, RECEP ou MEDICO.
  *
  * @author Wesley
  */
@@ -39,7 +40,7 @@ public class TelaRelatorios extends javax.swing.JFrame {
      *
      * <p>
      * É utilizado para definir permissões de acesso e determinar quais
-     * componentes podem ser visualizadas ou manipuladas na interface.     
+     * componentes podem ser visualizadas ou manipuladas na interface.
      */
     private Usuario usuarioLogado;
 
@@ -91,7 +92,7 @@ public class TelaRelatorios extends javax.swing.JFrame {
          * <p>
          * Cada evento do DocumentListener — inserção, remoção ou alteração de
          * estilo — aciona o método {@code buscarRelatorios()}, garantindo
-         * atualização imediata dos resultados exibidos.         
+         * atualização imediata dos resultados exibidos.
          */
         txtBuscar.getDocument().addDocumentListener(new javax.swing.event.DocumentListener() {
             /**
@@ -156,7 +157,7 @@ public class TelaRelatorios extends javax.swing.JFrame {
      * <li>RECEP: sem acesso à remoção</li>
      * <li>MEDICO: vê apenas suas consultas e não pode remover</li>
      * <li>Outros perfis: acesso mínimo</li>
-     * </ul>     
+     * </ul>
      */
     private void aplicarPermissoes() {
         String perfil = perfilNormalizado();
@@ -185,7 +186,7 @@ public class TelaRelatorios extends javax.swing.JFrame {
      *
      * <p>
      * ADMIN e RECEP possuem acesso a todas as listas. MÉDICO não utiliza estes
-     * filtros.     
+     * filtros.
      *
      * Em caso de falha, uma mensagem de aviso é exibida ao usuário.
      */
@@ -196,7 +197,7 @@ public class TelaRelatorios extends javax.swing.JFrame {
 
         String perfil = perfilNormalizado();
 
-        if ("ADMIN".equals(perfil) || "RECEP".equals(perfil) || "RECEPCIONISTA".equals(perfil)) {
+        if ("ADMIN".equals(perfil) || "RECEP".equals(perfil)) {
             try {
                 PacienteDAO pacienteDAO = new PacienteDAO();
                 List<Paciente> pacientes = pacienteDAO.listarTodos();
@@ -232,11 +233,10 @@ public class TelaRelatorios extends javax.swing.JFrame {
      * <p>
      * Se o campo estiver vazio, recarrega a listagem padrão de consultas
      * conforme o perfil do usuário. Caso contrário, usa o método
-     * {@link ConsultaDAO#buscarConsulta(String)}.     
+     * {@link ConsultaDAO#buscarConsulta(String)}.
      */
     private void buscarRelatorios() {
         String termo = txtBuscar.getText().trim();
-
         ConsultaDAO dao = new ConsultaDAO();
         List<Consulta> consultas;
 
@@ -245,7 +245,7 @@ public class TelaRelatorios extends javax.swing.JFrame {
             return;
         }
 
-        consultas = dao.buscarConsulta(termo);
+        consultas = dao.buscarConsulta(termo, usuarioLogado, perfilNormalizado());
         preencherTabela(consultas);
     }
 
@@ -254,10 +254,10 @@ public class TelaRelatorios extends javax.swing.JFrame {
      *
      * <p>
      * Para médicos, carrega apenas consultas do médico logado. Para outros
-     * perfis, carrega todas as consultas.     
+     * perfis, carrega todas as consultas.
      */
     private void carregarConsultasIniciais() {
-        if (usuarioLogado != null && "MEDICO".equalsIgnoreCase(usuarioLogado.getPerfil())) {
+        if (usuarioLogado != null && "MEDICO".equals(perfilNormalizado())) {
             carregarConsultasDoMedicoLogado();
         } else {
             carregarTodasConsultas();
@@ -286,11 +286,11 @@ public class TelaRelatorios extends javax.swing.JFrame {
      *
      * <p>
      * Considera também o perfil do usuário para garantir que médicos só
-     * visualizem suas próprias consultas.    
+     * visualizem suas próprias consultas.
      *
      * <p>
      * Em caso de erro de formatação ou falha na busca, uma mensagem apropriada
-     * é exibida ao usuário.     
+     * é exibida ao usuário.
      */
     private void gerarRelatorio() {
         ConsultaDAO dao = new ConsultaDAO();
@@ -298,58 +298,10 @@ public class TelaRelatorios extends javax.swing.JFrame {
 
         try {
             String perfil = perfilNormalizado();
+            FiltroRelatorio filtro = identificarFiltroSelecionado();
+            Object valor = obterValorSelecionado(filtro);
 
-            if (rdbPaciente.isSelected() && comboPaciente.getSelectedItem() != null) {
-                Paciente pacienteSelecionado = (Paciente) comboPaciente.getSelectedItem();
-                int pacienteId = pacienteSelecionado.getId();
-                if ("MEDICO".equals(perfil)) {
-                    consultas = dao.listarPorPacienteEMedico(pacienteId, usuarioLogado.getId());
-                } else {
-                    consultas = dao.listarPorPaciente(pacienteId);
-                }
-            } else if (rdbMedico.isSelected() && comboMedico.getSelectedItem() != null) {
-                Medico medicoSelecionado = (Medico) comboMedico.getSelectedItem();
-                int medicoId = medicoSelecionado.getId();
-                if ("MEDICO".equals(perfil)) {                    
-                    consultas = dao.listarPorMedico(usuarioLogado.getId());
-                } else {
-                    consultas = dao.listarPorMedico(medicoId);
-                }
-            } else if (rdbStatus.isSelected() && comboStatus.getSelectedIndex() != -1) {
-                String statusSelecionado = comboStatus.getSelectedItem().toString().toUpperCase();
-                StatusConsulta status = StatusConsulta.valueOf(statusSelecionado);
-                if ("MEDICO".equals(perfil)) {
-                    consultas = dao.listarPorStatusEMedico(status, usuarioLogado.getId());
-                } else {
-                    consultas = dao.listarPorStatus(status);
-                }
-            } else if (rdbPeriodo.isSelected()) {
-                String de = txtDataInicial.getText().trim();
-                String ate = txtDataFinal.getText().trim();
-
-                if (de.isEmpty() || ate.isEmpty()) {
-                    JOptionPane.showMessageDialog(this,
-                            "Informe a data inicial e final para o filtro por período.",
-                            "Aviso", JOptionPane.WARNING_MESSAGE);
-                    return;
-                }
-
-                LocalDate dataInicial = LocalDate.parse(de, fmtData);
-                LocalDate dataFinal = LocalDate.parse(ate, fmtData);
-
-                if ("MEDICO".equals(perfil)) {
-                    consultas = dao.listarPorPeriodoEMedico(dataInicial, dataFinal, usuarioLogado.getId());
-                } else {
-                    consultas = dao.listarPorPeriodo(dataInicial, dataFinal);
-                }
-            } else {
-                if ("MEDICO".equals(perfil)) {
-                    consultas = dao.listarPorMedico(usuarioLogado.getId());
-                } else {
-                    consultas = dao.listarTodos();
-                }
-            }
-
+            consultas = filtro.executar(dao, usuarioLogado, perfil, valor);
             preencherTabela(consultas);
 
         } catch (Exception e) {
@@ -357,7 +309,40 @@ public class TelaRelatorios extends javax.swing.JFrame {
                     "Erro ao gerar relatório: " + e.getMessage(),
                     "Erro", JOptionPane.ERROR_MESSAGE);
         }
+    }
 
+    private FiltroRelatorio identificarFiltroSelecionado() {
+        if (rdbPaciente.isSelected()) {
+            return FiltroRelatorio.PACIENTE;
+        }
+        if (rdbMedico.isSelected()) {
+            return FiltroRelatorio.MEDICO;
+        }
+        if (rdbStatus.isSelected()) {
+            return FiltroRelatorio.STATUS;
+        }
+        if (rdbPeriodo.isSelected()) {
+            return FiltroRelatorio.PERIODO;
+        }
+        return FiltroRelatorio.TODOS;
+    }
+
+    private Object obterValorSelecionado(FiltroRelatorio filtro) {
+        switch (filtro) {
+            case PACIENTE:
+                return (Paciente) comboPaciente.getSelectedItem();
+            case MEDICO:
+                return (Medico) comboMedico.getSelectedItem();
+            case STATUS:
+                String statusSelecionado = comboStatus.getSelectedItem().toString().toUpperCase();
+                return StatusConsulta.valueOf(statusSelecionado);
+            case PERIODO:
+                LocalDate dataInicial = LocalDate.parse(txtDataInicial.getText().trim(), fmtData);
+                LocalDate dataFinal = LocalDate.parse(txtDataFinal.getText().trim(), fmtData);
+                return new LocalDate[]{dataInicial, dataFinal};
+            default:
+                return null;
+        }
     }
 
     /**
@@ -384,7 +369,7 @@ public class TelaRelatorios extends javax.swing.JFrame {
      * Inicializa os componentes gráficos da tela.
      * <p>
      * Método gerado automaticamente pelo editor visual (NetBeans). Recomenda-se
-     * não modificar manualmente.    
+     * não modificar manualmente.
      */
     @SuppressWarnings("unchecked")
     // <editor-fold defaultstate="collapsed" desc="Generated Code">//GEN-BEGIN:initComponents
@@ -623,7 +608,7 @@ public class TelaRelatorios extends javax.swing.JFrame {
      *
      * <p>
      * Solicita confirmação ao usuário antes de excluir a consulta selecionada.
-     * Após a remoção, recarrega os dados conforme o perfil.     
+     * Após a remoção, recarrega os dados conforme o perfil.
      *
      * @param evt evento do botão
      */
@@ -674,7 +659,7 @@ public class TelaRelatorios extends javax.swing.JFrame {
      *
      * <p>
      * Atualiza o status no banco de dados e recarrega a tabela. Exibe mensagens
-     * de aviso caso nenhum item ou status seja selecionado.     
+     * de aviso caso nenhum item ou status seja selecionado.
      *
      * @param evt evento do botão
      */

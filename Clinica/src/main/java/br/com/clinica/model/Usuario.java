@@ -6,7 +6,7 @@ import jakarta.persistence.*;
  * Entidade que representa um usuário do sistema.
  * <p>
  * Mapeada para a tabela {@code usuario}. Contém campos mínimos para
- * autenticação/autorizações no sistema (login, senha e perfil). 
+ * autenticação/autorizações no sistema (login, senha e perfil).
  *
  * <p>
  * <b>Atenção de segurança:</b> esta classe expõe a senha como texto simples. Em
@@ -79,7 +79,7 @@ public class Usuario {
     /**
      * Retorna a senha do usuário.
      * <p>
-     * Em produção, prefira métodos que comparem hashes em vez de expor o valor.     
+     * Em produção, prefira métodos que comparem hashes em vez de expor o valor.
      *
      * @return senha do usuário
      */
@@ -94,5 +94,5 @@ public class Usuario {
      */
     public String getPerfil() {
         return perfil;
-    }
+    }    
 }
